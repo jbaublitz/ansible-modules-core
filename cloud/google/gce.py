@@ -98,6 +98,7 @@ options:
         the number of nodes to provision using name
         as a base name
     required: false
+    version_added: "2.2"
   network:
     description:
       - name of the network, 'default' will be used if not specified
