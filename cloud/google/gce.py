@@ -92,6 +92,12 @@ options:
       - identifier when working with a single instance.  Will be deprecated in a future release.
         Please 'instance_names' instead.
     required: false
+  number:
+    description:
+      - when used in combination with 'name', specifies
+        the number of nodes to provision using name
+        as a base name
+    required: false
   network:
     description:
       - name of the network, 'default' will be used if not specified
