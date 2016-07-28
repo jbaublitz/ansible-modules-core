@@ -541,44 +541,40 @@ def change_instance_state(module, gce, instance_names, number, zone_name, state)
 
     """
     changed = False
+    nodes = []
     state_instance_names = []
-    if isinstance(instance_names, str) and number and state in ['absent', 'deleted']:
+    if isinstance(instance_names, str) and number:
         node_names = ['%s-%03d' % (instance_names, i) for i in range(number)]
-        nodes = []
-        for name in node_names:
-            inst = None
-            try:
-                inst = gce.ex_get_node(name)
-            except ResourceNotFoundError:
-                state_instance_names.append(name)
-            except Exception as e:
-                module.fail_json(msg=unexpected_error_msg(e), changed=False)
-            else:
-                nodes.append(inst)
-                state_instance_names.append(name)
-        destroyed_nodes = gce.ex_destroy_multiple_nodes(nodes) or [False]
-        changed = reduce(lambda x, y: x or y, destroyed_nodes)
     else:
-        for name in instance_names:
-            inst = None
-            try:
-                inst = gce.ex_get_node(name, zone_name)
-            except ResourceNotFoundError:
-                pass
-            except Exception as e:
-                module.fail_json(msg=unexpected_error_msg(e), changed=changed)
-            else:
-                state_instance_names.append(inst.name)
-            if inst and state in ['absent', 'deleted']:
-                gce.destroy_node(inst)
+        node_names = instance_names
+
+    for name in node_names:
+        inst = None
+        try:
+            inst = gce.ex_get_node(name)
+        except ResourceNotFoundError:
+            state_instance_names.append(name)
+        except Exception as e:
+            module.fail_json(msg=unexpected_error_msg(e), changed=False)
+        else:
+            nodes.append(inst)
+            state_instance_names.append(name)
+
+    if state in ['absent', 'deleted'] and number:
+        changed_nodes = gce.ex_destroy_multiple_nodes(nodes) or [False]
+        changed = reduce(lambda x, y: x or y, changed_nodes)
+    else:
+        for node in nodes:
+            if state in ['absent', 'deleted']:
+                gce.destroy_node(node)
                 changed = True
-            elif inst and state == 'started' and \
-                      inst.state == libcloud.compute.types.NodeState.STOPPED:
-                gce.ex_start_node(inst)
+            elif state == 'started' and \
+                      node.state == libcloud.compute.types.NodeState.STOPPED:
+                gce.ex_start_node(node)
                 changed = True
-            elif inst and state in ['stopped', 'terminated'] and \
-                      inst.state == libcloud.compute.types.NodeState.RUNNING:
-                gce.ex_stop_node(inst)
+            elif state in ['stopped', 'terminated'] and \
+                      node.state == libcloud.compute.types.NodeState.RUNNING:
+                gce.ex_stop_node(node)
                 changed = True
 
     return (changed, state_instance_names)
