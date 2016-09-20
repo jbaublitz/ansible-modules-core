@@ -87,15 +87,14 @@ options:
       - your GCE project ID
     required: false
     default: null
-  name:
+  base_name:
     description:
-      - identifier when working with a single instance.  Will be deprecated in a future release.
-        Please 'instance_names' instead.
+      - required with 'num_instances', base of generated name of node group
     required: false
-  number:
+  num_instances:
     description:
-      - when used in combination with 'name', specifies
-        the number of nodes to provision using name
+      - required with 'base_name', specifies
+        the number of nodes to provision using 'base_name'
         as a base name
     required: false
     version_added: "2.2"
@@ -490,10 +489,10 @@ def create_instances(module, gce, instance_names, number):
 
             inst = None
             try:
-                inst = gce.ex_get_node(name, lc_zone)
+                inst = gce.ex_get_node(instance, lc_zone)
             except ResourceNotFoundError:
                 inst = gce.create_node(
-                    name, lc_machine_type, lc_image(), **gce_args
+                    instance, lc_machine_type, lc_image(), **gce_args
                 )
                 changed = True
             except GoogleBaseError as e:
@@ -558,7 +557,7 @@ def change_instance_state(module, gce, instance_names, number, zone_name, state)
     for name in node_names:
         inst = None
         try:
-            inst = gce.ex_get_node(name)
+            inst = gce.ex_get_node(name, zone_name)
         except ResourceNotFoundError:
             state_instance_names.append(name)
         except Exception as e:
@@ -593,8 +592,8 @@ def main():
             instance_names = dict(),
             machine_type = dict(default='n1-standard-1'),
             metadata = dict(),
-            name = dict(),
-            number = dict(type='int'),
+            base_name = dict(),
+            num_instances = dict(type='int'),
             network = dict(default='default'),
             subnetwork = dict(),
             persistent_boot_disk = dict(type='bool', default=False),
@@ -613,7 +612,9 @@ def main():
             external_ip=dict(default='ephemeral'),
             disk_auto_delete = dict(type='bool', default=True),
             preemptible = dict(type='bool', default=None),
-        )
+        ),
+        mutually_exclusive=[('instance_names', 'base_name')],
+        required_together=[('base_name', 'num_instances')]
     )
 
     if not HAS_PYTHON26:
@@ -627,8 +628,8 @@ def main():
     instance_names = module.params.get('instance_names')
     machine_type = module.params.get('machine_type')
     metadata = module.params.get('metadata')
-    name = module.params.get('name')
-    number = module.params.get('number')
+    name = module.params.get('base_name')
+    number = module.params.get('num_instances')
     network = module.params.get('network')
     subnetwork = module.params.get('subnetwork')
     persistent_boot_disk = module.params.get('persistent_boot_disk')
@@ -644,15 +645,10 @@ def main():
         inames = instance_names
     elif isinstance(instance_names, str):
         inames = instance_names.split(',')
-    if name and not number:
-        inames.append(name)
-    elif name and number:
+    if name and number:
         inames = name
     if not inames:
-        module.fail_json(msg='Must specify a "name" or "instance_names"',
-                         changed=False)
-    if isinstance(inames, list) and number:
-        module.fail_json(msg='Cannot specify "instance_names" and a number',
+        module.fail_json(msg='Must specify a "base_name" or "instance_names"',
                          changed=False)
     if not zone:
         module.fail_json(msg='Must specify a "zone"', changed=False)
