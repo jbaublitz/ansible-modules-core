@@ -91,6 +91,7 @@ options:
     description:
       - required with 'num_instances', base of generated name of node group
     required: false
+    version_added: "2.2"
   num_instances:
     description:
       - required with 'base_name', specifies
