@@ -87,11 +87,11 @@ options:
       - your GCE project ID
     required: false
     default: null
-  base_name:
+  name:
     description:
       - required with 'num_instances', base of generated name of node group
     required: false
-    version_added: "2.2"
+    aliases: ['base_name']
   num_instances:
     description:
       - required with 'base_name', specifies
@@ -483,9 +483,9 @@ def create_instances(module, gce, instance_names, number):
                 pd = lc_disks[0]
             elif persistent_boot_disk:
                 try:
-                    pd = gce.ex_get_volume("%s" % name, lc_zone)
+                    pd = gce.ex_get_volume("%s" % instance, lc_zone)
                 except ResourceNotFoundError:
-                    pd = gce.create_volume(None, "%s" % name, image=lc_image())
+                    pd = gce.create_volume(None, "%s" % instance, image=lc_image())
             gce_args['ex_boot_disk'] = pd
 
             inst = None
@@ -498,7 +498,7 @@ def create_instances(module, gce, instance_names, number):
                 changed = True
             except GoogleBaseError as e:
                 module.fail_json(msg='Unexpected error attempting to create ' +
-                                 'instance %s, error: %s' % (name, e.value))
+                                 'instance %s, error: %s' % (instance, e.value))
             if inst:
                 new_instances.append(inst)
 
@@ -593,7 +593,7 @@ def main():
             instance_names = dict(),
             machine_type = dict(default='n1-standard-1'),
             metadata = dict(),
-            base_name = dict(),
+            name = dict(aliases=['base_name']),
             num_instances = dict(type='int'),
             network = dict(default='default'),
             subnetwork = dict(),
@@ -629,7 +629,7 @@ def main():
     instance_names = module.params.get('instance_names')
     machine_type = module.params.get('machine_type')
     metadata = module.params.get('metadata')
-    name = module.params.get('base_name')
+    name = module.params.get('name')
     number = module.params.get('num_instances')
     network = module.params.get('network')
     subnetwork = module.params.get('subnetwork')
