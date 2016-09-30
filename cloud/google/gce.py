@@ -614,8 +614,7 @@ def main():
             disk_auto_delete = dict(type='bool', default=True),
             preemptible = dict(type='bool', default=None),
         ),
-        mutually_exclusive=[('instance_names', 'base_name')],
-        required_together=[('base_name', 'num_instances')]
+        mutually_exclusive=[('instance_names', 'name')]
     )
 
     if not HAS_PYTHON26:
@@ -646,7 +645,7 @@ def main():
         inames = instance_names
     elif isinstance(instance_names, str):
         inames = instance_names.split(',')
-    if name and number:
+    if name:
         inames = name
     if not inames:
         module.fail_json(msg='Must specify a "base_name" or "instance_names"',
