@@ -465,6 +465,9 @@ def create_instances(module, gce, instance_names, number):
     if subnetwork is not None:
         gce_args['ex_subnetwork'] = subnetwork
 
+    if isinstance(instance_names, str) and not number:
+        instance_names = [instance_names]
+
     if isinstance(instance_names, str) and number:
         instance_responses = gce.ex_create_multiple_nodes(instance_names, lc_machine_type,
                                                           lc_image(), number, **gce_args)
@@ -550,8 +553,11 @@ def change_instance_state(module, gce, instance_names, number, zone_name, state)
     changed = False
     nodes = []
     state_instance_names = []
+
     if isinstance(instance_names, str) and number:
         node_names = ['%s-%03d' % (instance_names, i) for i in range(number)]
+    elif isinstance(instance_names, str) and not number:
+        node_names = [instance_names]
     else:
         node_names = instance_names
 
@@ -640,7 +646,7 @@ def main():
     preemptible = module.params.get('preemptible')
     changed = False
 
-    inames = []
+    inames = None
     if isinstance(instance_names, list):
         inames = instance_names
     elif isinstance(instance_names, str):
@@ -648,7 +654,7 @@ def main():
     if name:
         inames = name
     if not inames:
-        module.fail_json(msg='Must specify a "base_name" or "instance_names"',
+        module.fail_json(msg='Must specify a "name" or "instance_names"',
                          changed=False)
     if not zone:
         module.fail_json(msg='Must specify a "zone"', changed=False)
