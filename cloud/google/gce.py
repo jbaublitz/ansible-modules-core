@@ -89,16 +89,17 @@ options:
     default: null
   name:
     description:
-      - required with 'num_instances', base of generated name of node group
+      - either a name of a single instance or when used with 'num_instances',
+        the base name of a cluster of nodes
     required: false
     aliases: ['base_name']
   num_instances:
     description:
-      - required with 'base_name', specifies
-        the number of nodes to provision using 'base_name'
+      - can be used with 'name', specifies
+        the number of nodes to provision using 'name'
         as a base name
     required: false
-    version_added: "2.2"
+    version_added: "2.3"
   network:
     description:
       - name of the network, 'default' will be used if not specified
