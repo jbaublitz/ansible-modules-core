@@ -479,6 +479,9 @@ def create_instances(module, gce, instance_names, number):
                     n = gce.ex_get_node(n.name, lc_zone)
                 except ResourceNotFoundError:
                     pass
+            else:
+                # Assure that at least one node has been created to set changed=True
+                changed = True
             new_instances.append(n)
     else:
         for instance in instance_names:
