@@ -372,7 +372,7 @@ def create_instances(module, gce, instance_names, number):
     disk_auto_delete = module.params.get('disk_auto_delete')
     preemptible = module.params.get('preemptible')
     service_account_permissions = module.params.get('service_account_permissions')
-    service_account_email = module.params.get('service_account_email')
+    service_account_email = module.params.get('service_account_email') or os.environ.get('GCE_EMAIL')
 
     if external_ip == "none":
         instance_external_ip = None
@@ -440,13 +440,14 @@ def create_instances(module, gce, instance_names, number):
     lc_image = LazyDiskImage(module, gce, image, lc_disks)
     ex_sa_perms = []
     bad_perms = []
+    if service_account_email:
+        ex_sa_perms.append({'email': service_account_email})
     if service_account_permissions:
         for perm in service_account_permissions:
             if perm not in gce.SA_SCOPES_MAP.keys():
                 bad_perms.append(perm)
         if len(bad_perms) > 0:
             module.fail_json(msg='bad permissions: %s' % str(bad_perms))
-        ex_sa_perms.append({'email': "default"})
         ex_sa_perms[0]['scopes'] = service_account_permissions
 
     # These variables all have default values but check just in case
